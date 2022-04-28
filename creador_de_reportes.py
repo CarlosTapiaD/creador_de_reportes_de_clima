@@ -6,7 +6,6 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from firebase import firebase
 import requests
-import requests
 #aqui va la url de la api que se consumira
 URL="http://api.weatherstack.com/current"
 # datos de ejemplo
@@ -54,27 +53,30 @@ clima={
 
 def leerExcel():
     try:
+        #aqui se guadaran los datos de la api con el origin_iata_code ya que es unico para cada aereopuerto
         data={}
+        #aqui se guarda el numero de vuelo ya que se repiten las entradas y salidas asi que un reporte por vuelo le sirve a varios usuarios
         numerovuelo={}
+        #esto es un diccionario donde se guardan los datos del vuelo,el clima destino y el clima origen
         datavuelos={}
     
-        a=0
+        a=0#contador para ver cuantas peticiones https se hacen a la api de clima
         print("Iniciando")
-        with open('challenge_dataset.csv') as csvfile:
-            reader = csv.DictReader(csvfile)
+        with open('challenge_dataset.csv') as csvfile:#aqui se selecciona el archivo y se abre
+            reader = csv.DictReader(csvfile) #este metodo me deja leer el documento csv
             for row in reader:
-                if(row['origin_iata_code'] not in data):
-                    b=datosdeclima(row['origin_latitude'],row['origin_longitude'],a)
+                if(row['origin_iata_code'] not in data): #si no esta dentro de mi diccionario hace un llamado a la api y guarda los diccionarios dentro 
+                    b=datosdeclima(row['origin_latitude'],row['origin_longitude'])
                     data[row['origin_iata_code']]={"clima":{"tiempo":b}}
                     a=a+1
                     
-                if(row['destination_iata_code'] not in data):
-                    b=datosdeclima(row['destination_latitude'],row['destination_longitude'],a)
+                if(row['destination_iata_code'] not in data):#si no esta dentro de mi diccionario hace un llamado a la api y guarda los diccionarios dentro 
+                    b=datosdeclima(row['destination_latitude'],row['destination_longitude'])
                     data[row['destination_iata_code']]={"clima":{"tiempo":b}}
                     a=a+1
                    
                     
-                if(row['origin_iata_code'] in data and row['destination_iata_code'] in data):
+                if(row['origin_iata_code'] in data and row['destination_iata_code'] in data): #aqui se van creando los pdf de los reportes y se carga el numero de vuelo a data vuelos para que no cree otro igual para el mismo vuelo
                     if(row['flight_num'] not in numerovuelo):
                         crear_reporte(row['flight_num'],data[row['origin_iata_code']]['clima'],data[row['destination_iata_code']]['clima'])
                         datavuelos[row['flight_num']]={'datavuelo':row,'clima_origen':data[row['origin_iata_code']]['clima']['tiempo'],'clima_destino':data[row['destination_iata_code']]['clima']['tiempo']}
@@ -86,21 +88,22 @@ def leerExcel():
     finally :
         print("se termino el proceso")
                     
-                    
-                    
-def datosdeclima(lat,long,a):
+              
+      
+#esta funcion sirve para traer los datos de la api por un post que recibe la longitud y latitud  usa la libreria requests
+def datosdeclima(lat,long):
     # aqui van llave para la api
-    # key=''
+    key=''
     
-    # headers = {
-    # "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0"}
-    # respuesta = requests.get(URL,headers=headers,params={'access_key':key,'query':'{},{}'.format(lat,long)}) 
-    # respuesta = respuesta.json()
-    # print("se hace la perticion con los datos ",lat,",",long)
-    # return respuesta
+    headers = {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0"}
+    respuesta = requests.get(URL,headers=headers,params={'access_key':key,'query':'{},{}'.format(lat,long)}) 
+    respuesta = respuesta.json()
+    print("se hace la perticion con los datos ",lat,",",long)
+    return respuesta
     # cambiar para pruebas
-    return clima
-
+    # return clima
+# esta funcion crea el reporte en pdf usando la libreria reportlab
 def crear_reporte(a,clima,clima2):
     
     w, h = A4
@@ -122,6 +125,8 @@ def crear_reporte(a,clima,clima2):
     c.showPage()
     c.save()
     
+
+    #esta funcion sirve para subir los datos a una base de datos en tiempo real con firebase recibe un diccionario con los datos de los vuelos,el clima destino y clima origen  
 def subirafirebase(viaje):
     # aqui va la url de tu proyecto de firebase Realtime Database
     urlfirebase=""
