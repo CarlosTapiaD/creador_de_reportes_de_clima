@@ -53,47 +53,53 @@ clima={
 }
 
 def leerExcel():
-    data={}
-    numerovuelo={}
+    try:
+        data={}
+        numerovuelo={}
+        datavuelos={}
     
-    a=0
-    print("Iniciando")
-    with open('challenge_dataset.csv') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            if(row['origin_iata_code'] not in data):
-                b=datosdeclima(row['destination_latitude'],row['destination_longitude'],a)
-                data[row['origin_iata_code']]={"clima":{"tiempo":b}}
-               
-
-                a=a+1
-                
-            if(row['destination_iata_code'] not in data):
-                b=datosdeclima(row['destination_latitude'],row['destination_longitude'],a)
-                data[row['destination_iata_code']]={"clima":{"tiempo":b}}
-                a=a+1
-                
-            if(row['origin_iata_code'] in data and row['destination_iata_code'] in data):
-                if(row['flight_num'] not in numerovuelo):
-                    crear_reporte(row['flight_num'],data[row['origin_iata_code']]['clima'],data[row['destination_iata_code']]['clima'])
-                    subirafirebase(data[row['destination_iata_code']],row['flight_num'])
-                    numerovuelo['flight_num']=row['flight_num']
-    print("numero de peticiones a la api"+str(a))
+        a=0
+        print("Iniciando")
+        with open('challenge_dataset.csv') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                if(row['origin_iata_code'] not in data):
+                    b=datosdeclima(row['origin_latitude'],row['origin_longitude'],a)
+                    data[row['origin_iata_code']]={"clima":{"tiempo":b}}
+                    a=a+1
+                    
+                if(row['destination_iata_code'] not in data):
+                    b=datosdeclima(row['destination_latitude'],row['destination_longitude'],a)
+                    data[row['destination_iata_code']]={"clima":{"tiempo":b}}
+                    a=a+1
+                   
+                    
+                if(row['origin_iata_code'] in data and row['destination_iata_code'] in data):
+                    if(row['flight_num'] not in numerovuelo):
+                        crear_reporte(row['flight_num'],data[row['origin_iata_code']]['clima'],data[row['destination_iata_code']]['clima'])
+                        datavuelos[row['flight_num']]={'datavuelo':row,'clima_origen':data[row['origin_iata_code']]['clima']['tiempo'],'clima_destino':data[row['destination_iata_code']]['clima']['tiempo']}
+                        numerovuelo['flight_num']=row['flight_num']
+        # subirafirebase(datavuelos)
+        print("numero de peticiones a la api"+str(a))
+    except :
+        print("Ocurrio un error")
+    finally :
+        print("se termino el proceso")
                     
                     
                     
 def datosdeclima(lat,long,a):
     # aqui van llave para la api
-    key=''
+    # key=''
     
-    headers = {
-    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0"}
-    respuesta = requests.get(URL,headers=headers,params={'access_key':key,'query':'{},{}'.format(lat,long)}) 
-    respuesta = respuesta.json()
-    print("se hace la perticion con los datos ",lat,",",long)
-    return respuesta
+    # headers = {
+    # "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0"}
+    # respuesta = requests.get(URL,headers=headers,params={'access_key':key,'query':'{},{}'.format(lat,long)}) 
+    # respuesta = respuesta.json()
+    # print("se hace la perticion con los datos ",lat,",",long)
+    # return respuesta
     # cambiar para pruebas
-    # return clima
+    return clima
 
 def crear_reporte(a,clima,clima2):
     
@@ -116,11 +122,11 @@ def crear_reporte(a,clima,clima2):
     c.showPage()
     c.save()
     
-def subirafirebase(viaje,vuelo):
+def subirafirebase(viaje):
     # aqui va la url de tu proyecto de firebase Realtime Database
     urlfirebase=""
     fireread=firebase.FirebaseApplication(urlfirebase,None)
-    fireread.put(url=urlfirebase,name='/viajes',data={vuelo:viaje})
+    fireread.put(url=urlfirebase,name='/vuelos',data=viaje)
     return True
     
 
